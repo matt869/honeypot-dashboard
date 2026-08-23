@@ -339,6 +339,64 @@ def find_campaigns(
 
 
 # --------------------------------------------------------------------------- #
+# Persistence
+# --------------------------------------------------------------------------- #
+
+
+def store_campaigns(db, campaigns: list[Campaign], threshold: float) -> int:
+    """Replace the stored clustering for ``threshold`` with ``campaigns``.
+
+    Replace rather than merge: a campaign has no identity across runs. Sources
+    join and leave as behaviour accumulates, two groups become one when a
+    bridging address appears, and there is no stable key that survives that.
+    Trying to preserve ids would invent continuity the data does not have.
+    """
+    import uuid as _uuid
+
+    from storage.models import Campaign as CampaignRow
+    from storage.models import utcnow as _utcnow
+
+    db.query(CampaignRow).filter(CampaignRow.threshold == threshold).delete(
+        synchronize_session=False
+    )
+
+    now = _utcnow()
+    for campaign in campaigns:
+        db.add(
+            CampaignRow(
+                campaign_id=str(_uuid.uuid4()),
+                threshold=threshold,
+                size=campaign.size,
+                members=list(campaign.members),
+                event_count=campaign.event_count,
+                cohesion=campaign.cohesion,
+                shared_credentials=list(campaign.shared_credentials),
+                shared_payloads=list(campaign.shared_payloads),
+                shared_paths=list(campaign.shared_paths),
+                asns=list(campaign.asns),
+                countries=list(campaign.countries),
+                classifications=list(campaign.classifications),
+                first_seen=campaign.first_seen,
+                last_seen=campaign.last_seen,
+                computed_at=now,
+            )
+        )
+    return len(campaigns)
+
+
+def rebuild_campaigns(
+    db,
+    *,
+    threshold: float = DEFAULT_THRESHOLD,
+    limit: int = 2000,
+    min_size: int = MIN_CAMPAIGN_SIZE,
+) -> int:
+    """Cluster and persist in one call. Returns the number of campaigns stored."""
+    found = find_campaigns(db, threshold=threshold, limit=limit, min_size=min_size)
+    return store_campaigns(db, found, threshold)
+
+
+# --------------------------------------------------------------------------- #
 # CLI
 # --------------------------------------------------------------------------- #
 
@@ -359,6 +417,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--limit", type=int, default=2000, help="attackers to consider")
     parser.add_argument("--min-size", type=int, default=MIN_CAMPAIGN_SIZE)
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--store",
+        action="store_true",
+        help="persist the result, replacing any stored clustering at this threshold",
+    )
     args = parser.parse_args(argv)
 
     from storage.db import session_scope
@@ -367,6 +430,13 @@ def main(argv: list[str] | None = None) -> int:
         campaigns = find_campaigns(
             db, threshold=args.threshold, limit=args.limit, min_size=args.min_size
         )
+        if args.store:
+            store_campaigns(db, campaigns, args.threshold)
+            db.commit()
+            print(
+                f"stored {len(campaigns)} campaign(s) at threshold {args.threshold}",
+                file=sys.stderr,
+            )
 
     if args.json:
         print(json.dumps([c.as_dict() for c in campaigns], indent=2, default=str))
@@ -409,6 +479,8 @@ __all__ = [
     "jaccard",
     "cluster",
     "find_campaigns",
+    "store_campaigns",
+    "rebuild_campaigns",
     "build_fingerprints",
     "FACET_WEIGHTS",
     "DEFAULT_THRESHOLD",

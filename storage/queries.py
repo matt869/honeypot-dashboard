@@ -28,6 +28,7 @@ from storage.models import (
     Alert,
     AlertStatus,
     Attacker,
+    Campaign,
     Event,
     EventType,
     Payload,
@@ -816,6 +817,46 @@ def payload_arch_breakdown(db: OrmSession) -> list[dict[str, Any]]:
 
 
 # --------------------------------------------------------------------------- #
+# Campaigns
+# --------------------------------------------------------------------------- #
+
+
+def list_campaigns(
+    db: OrmSession, *, threshold: float | None = None, min_size: int = 2, limit: int = 200
+) -> list[Campaign]:
+    """Stored campaigns, largest first.
+
+    ``threshold`` selects which stored clustering to read. A grouping only
+    means anything relative to the similarity floor that produced it, so rows
+    computed at different thresholds are different answers and are never mixed.
+    """
+    stmt = select(Campaign).where(Campaign.size >= min_size)
+    if threshold is not None:
+        stmt = stmt.where(Campaign.threshold == threshold)
+    stmt = stmt.order_by(Campaign.size.desc(), Campaign.event_count.desc()).limit(limit)
+    return list(db.execute(stmt).scalars())
+
+
+def stored_campaign_thresholds(db: OrmSession) -> list[float]:
+    """Which thresholds currently have a stored clustering."""
+    stmt = select(distinct(Campaign.threshold)).order_by(Campaign.threshold)
+    return [float(t) for t in db.execute(stmt).scalars()]
+
+
+def campaign_for_attacker(db: OrmSession, src_ip: str, threshold: float | None = None):
+    """The stored campaign containing ``src_ip``, if any.
+
+    Membership lives in a JSON column, and JSON containment is not portable
+    across SQLite and PostgreSQL, so the scan happens in Python. The stored set
+    is small — hundreds of rows at most — and one code path beats two.
+    """
+    for campaign in list_campaigns(db, threshold=threshold, limit=1000):
+        if src_ip in (campaign.members or []):
+            return campaign
+    return None
+
+
+# --------------------------------------------------------------------------- #
 # Alerts
 # --------------------------------------------------------------------------- #
 
@@ -905,6 +946,9 @@ __all__ = [
     "payload_sources",
     "payload_arch_breakdown",
     "PAYLOAD_SORT_FIELDS",
+    "list_campaigns",
+    "stored_campaign_thresholds",
+    "campaign_for_attacker",
     "list_alerts",
     "set_alert_status",
     "alert_counts_by_rule",

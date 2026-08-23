@@ -59,36 +59,94 @@ def client(tmp_path, monkeypatch):
     reset_state()
 
 
-class TestCampaignsEndpoint:
+class TestRecompute:
+    """The live path, opted into with recompute=true."""
+
     def test_groups_the_credential_sharers(self, client):
-        body = client.get("/api/campaigns").json()
-        assert len(body) == 1
-        assert body[0]["members"] == ["45.33.32.1", "45.33.32.2"]
+        body = client.get("/api/campaigns?recompute=true").json()
+        assert len(body["items"]) == 1
+        assert body["items"][0]["members"] == ["45.33.32.1", "45.33.32.2"]
 
     def test_excludes_the_unrelated_source(self, client):
-        body = client.get("/api/campaigns").json()
-        assert "93.184.216.9" not in body[0]["members"]
+        body = client.get("/api/campaigns?recompute=true").json()
+        assert "93.184.216.9" not in body["items"][0]["members"]
 
     def test_reports_the_evidence(self, client):
-        campaign = client.get("/api/campaigns").json()[0]
+        campaign = client.get("/api/campaigns?recompute=true").json()["items"][0]
         assert campaign["shared_credentials"] == ["root:hunter2"]
         assert campaign["shared_paths"] == ["/shell.php"]
 
     def test_reports_size_events_and_cohesion(self, client):
-        campaign = client.get("/api/campaigns").json()[0]
+        campaign = client.get("/api/campaigns?recompute=true").json()["items"][0]
         assert campaign["size"] == 2
         assert campaign["event_count"] == 6
         assert 0.0 <= campaign["cohesion"] <= 1.0
 
-    def test_an_unreachable_threshold_returns_an_empty_list(self, client):
-        assert client.get("/api/campaigns?threshold=1.0&min_size=3").json() == []
+    def test_an_unreachable_threshold_returns_nothing(self, client):
+        body = client.get("/api/campaigns?recompute=true&threshold=1.0&min_size=3").json()
+        assert body["items"] == []
 
+    def test_provenance_says_computed(self, client):
+        assert client.get("/api/campaigns?recompute=true").json()["source"] == "computed"
+
+
+class TestStoredByDefault:
+    """The default path reads rows written by the rebuild command."""
+
+    def test_nothing_stored_yields_an_empty_page_not_a_slow_recompute(self, client):
+        body = client.get("/api/campaigns").json()
+        assert body["items"] == []
+        assert body["source"] == "stored"
+        assert body["computed_at"] is None
+
+    def test_stored_rows_are_served(self, client):
+        from pipeline.analysis.campaigns import DEFAULT_THRESHOLD, rebuild_campaigns
+        from storage.db import session_scope
+
+        with session_scope() as db:
+            stored = rebuild_campaigns(db)
+        assert stored == 1
+
+        body = client.get("/api/campaigns").json()
+        assert body["source"] == "stored"
+        assert body["computed_at"] is not None
+        assert body["items"][0]["members"] == ["45.33.32.1", "45.33.32.2"]
+        assert body["threshold"] == DEFAULT_THRESHOLD
+
+    def test_stored_rows_carry_the_evidence(self, client):
+        from pipeline.analysis.campaigns import rebuild_campaigns
+        from storage.db import session_scope
+
+        with session_scope() as db:
+            rebuild_campaigns(db)
+        campaign = client.get("/api/campaigns").json()["items"][0]
+        assert campaign["shared_credentials"] == ["root:hunter2"]
+
+    def test_available_thresholds_are_reported(self, client):
+        from pipeline.analysis.campaigns import rebuild_campaigns
+        from storage.db import session_scope
+
+        with session_scope() as db:
+            rebuild_campaigns(db, threshold=0.35)
+            rebuild_campaigns(db, threshold=0.5)
+        assert client.get("/api/campaigns").json()["available_thresholds"] == [0.35, 0.5]
+
+    def test_a_threshold_with_no_stored_rows_is_empty(self, client):
+        from pipeline.analysis.campaigns import rebuild_campaigns
+        from storage.db import session_scope
+
+        with session_scope() as db:
+            rebuild_campaigns(db, threshold=0.35)
+        assert client.get("/api/campaigns?threshold=0.9").json()["items"] == []
+
+
+class TestCampaignsEndpoint:
     def test_threshold_is_bounded(self, client):
         assert client.get("/api/campaigns?threshold=1.5").status_code == 422
         assert client.get("/api/campaigns?threshold=-0.1").status_code == 422
 
     def test_min_size_filters_small_groups(self, client):
-        assert client.get("/api/campaigns?min_size=5").json() == []
+        assert client.get("/api/campaigns?recompute=true&min_size=5").json()["items"] == []
 
     def test_limit_is_bounded(self, client):
         # Clustering is O(n²), so an unbounded limit is a self-inflicted denial
@@ -108,4 +166,4 @@ class TestCampaignsEndpoint:
     def test_response_is_json_serialisable_end_to_end(self, client):
         response = client.get("/api/campaigns")
         assert response.status_code == 200
-        assert isinstance(response.json(), list)
+        assert isinstance(response.json()["items"], list)

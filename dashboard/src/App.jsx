@@ -8,6 +8,7 @@ import AttackerProfile from "./pages/AttackerProfile.jsx";
 import Sessions from "./pages/Sessions.jsx";
 import SessionReplay from "./pages/SessionReplay.jsx";
 import Payloads from "./pages/Payloads.jsx";
+import Campaigns from "./pages/Campaigns.jsx";
 import Alerts from "./pages/Alerts.jsx";
 
 const NAV = [
@@ -16,6 +17,7 @@ const NAV = [
   { to: "/sessions", label: "Sessions", icon: "▶" },
   { to: "/attackers", label: "Attackers", icon: "⚑" },
   { to: "/payloads", label: "Payloads", icon: "⬢" },
+  { to: "/campaigns", label: "Campaigns", icon: "⧉" },
   { to: "/alerts", label: "Alerts", icon: "!" },
 ];
 
@@ -79,6 +81,7 @@ export default function App() {
           <Route path="/attackers" element={<Attackers />} />
           <Route path="/attackers/:ip" element={<AttackerProfile />} />
           <Route path="/payloads" element={<Payloads />} />
+          <Route path="/campaigns" element={<Campaigns />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="*" element={<div className="empty">Not found.</div>} />
         </Routes>

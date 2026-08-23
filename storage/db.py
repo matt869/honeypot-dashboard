@@ -156,14 +156,23 @@ def _apply_migrations(engine: Engine) -> None:
 
 
 def _split_statements(sql: str) -> list[str]:
-    """Split a .sql file into statements, ignoring comments and blank lines."""
-    out: list[str] = []
-    for chunk in sql.split(";"):
-        lines = [ln for ln in chunk.splitlines() if ln.strip() and not ln.strip().startswith("--")]
-        statement = "\n".join(lines).strip()
-        if statement:
-            out.append(statement)
-    return out
+    """Split a .sql file into statements, ignoring comments and blank lines.
+
+    Comments are stripped *before* splitting on the semicolon, not after. The
+    other order looks equivalent and is not: a semicolon inside a comment —
+    "``metadata (models.py); this adds ...``" — ends the chunk there, and the
+    remainder of the comment line no longer starts with ``--``, so it survives
+    as SQL and the migration dies with a syntax error near an English word.
+
+    This is not hypothetical. Two migrations in this directory hit it, the
+    second one written by someone who had already documented the trap in the
+    first. Fixing the parser retires the whole class of mistake, which is worth
+    more than another warning comment nobody reads in time.
+    """
+    without_comments = "\n".join(
+        line for line in sql.splitlines() if line.strip() and not line.strip().startswith("--")
+    )
+    return [chunk.strip() for chunk in without_comments.split(";") if chunk.strip()]
 
 
 def reset_state() -> None:

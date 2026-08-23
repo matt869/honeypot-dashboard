@@ -271,6 +271,24 @@ class CampaignOut(BaseModel):
     last_seen: dt.datetime | None = None
 
 
+class CampaignPage(BaseModel):
+    """Campaigns plus the provenance of the grouping.
+
+    ``source`` matters to the reader: a stored clustering may be hours old and
+    a recomputed one reflects this instant. Showing groups without saying which
+    invites someone to conclude an operator has gone quiet when the table is
+    simply stale.
+    """
+
+    items: list[CampaignOut]
+    threshold: float
+    source: Literal["stored", "computed"]
+    computed_at: dt.datetime | None = None
+    available_thresholds: list[float] = Field(
+        default_factory=list, description="Thresholds that currently have stored rows"
+    )
+
+
 class ArchRow(BaseModel):
     arch: str
     count: int
@@ -469,6 +487,7 @@ __all__ = [
     "PayloadSource",
     "ArchRow",
     "CampaignOut",
+    "CampaignPage",
     "AlertOut",
     "AlertStatusUpdate",
     "RuleOut",

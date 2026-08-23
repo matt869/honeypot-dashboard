@@ -455,3 +455,114 @@ class TestCredentialPairsAreReal:
         prints = {p.src_ip: p for p in campaigns.build_fingerprints(db)}
         assert prints["45.33.32.8"].credentials == frozenset()
         assert "root" in prints["45.33.32.8"].usernames
+
+
+class TestPersistence:
+    """Storing a clustering, and the reasons it is replaced rather than merged."""
+
+    def test_rebuild_stores_the_campaigns(self, db, two_campaigns):
+        from storage.models import Campaign as CampaignRow
+
+        assert campaigns.rebuild_campaigns(db) == 2
+        db.commit()
+        assert db.query(CampaignRow).count() == 2
+
+    def test_stored_rows_carry_the_evidence(self, db, two_campaigns):
+        from storage import queries
+
+        campaigns.rebuild_campaigns(db)
+        db.commit()
+        rows = queries.list_campaigns(db)
+        creds = {c for row in rows for c in (row.shared_credentials or [])}
+        assert "root:hunter2" in creds
+
+    def test_rebuild_replaces_rather_than_accumulates(self, db, two_campaigns):
+        from storage.models import Campaign as CampaignRow
+
+        campaigns.rebuild_campaigns(db)
+        db.commit()
+        campaigns.rebuild_campaigns(db)
+        db.commit()
+        # A campaign has no identity across runs, so a second pass must replace
+        # the first rather than double it.
+        assert db.query(CampaignRow).count() == 2
+
+    def test_different_thresholds_coexist(self, db, two_campaigns):
+        from storage.models import Campaign as CampaignRow
+
+        campaigns.rebuild_campaigns(db, threshold=0.35)
+        campaigns.rebuild_campaigns(db, threshold=0.6)
+        db.commit()
+        thresholds = {r.threshold for r in db.query(CampaignRow).all()}
+        assert thresholds == {0.35, 0.6}
+
+    def test_rebuilding_one_threshold_leaves_the_other_alone(self, db, two_campaigns):
+        from storage.models import Campaign as CampaignRow
+
+        campaigns.rebuild_campaigns(db, threshold=0.35)
+        campaigns.rebuild_campaigns(db, threshold=0.6)
+        db.commit()
+        before = db.query(CampaignRow).filter(CampaignRow.threshold == 0.6).count()
+
+        campaigns.rebuild_campaigns(db, threshold=0.35)
+        db.commit()
+        assert db.query(CampaignRow).filter(CampaignRow.threshold == 0.6).count() == before
+
+    def test_stored_threshold_is_recorded_on_the_row(self, db, two_campaigns):
+        from storage import queries
+
+        campaigns.rebuild_campaigns(db, threshold=0.42)
+        db.commit()
+        assert all(r.threshold == 0.42 for r in queries.list_campaigns(db, threshold=0.42))
+
+    def test_listing_never_mixes_thresholds(self, db, two_campaigns):
+        from storage import queries
+
+        campaigns.rebuild_campaigns(db, threshold=0.35)
+        campaigns.rebuild_campaigns(db, threshold=0.6)
+        db.commit()
+        # A grouping only means anything relative to its floor.
+        assert all(r.threshold == 0.35 for r in queries.list_campaigns(db, threshold=0.35))
+
+    def test_stored_thresholds_are_reported(self, db, two_campaigns):
+        from storage import queries
+
+        campaigns.rebuild_campaigns(db, threshold=0.35)
+        campaigns.rebuild_campaigns(db, threshold=0.6)
+        db.commit()
+        assert queries.stored_campaign_thresholds(db) == [0.35, 0.6]
+
+    def test_campaign_for_attacker_finds_the_member(self, db, two_campaigns):
+        from storage import queries
+
+        campaigns.rebuild_campaigns(db)
+        db.commit()
+        found = queries.campaign_for_attacker(db, "45.33.32.1")
+        assert found is not None
+        assert "45.33.32.2" in found.members
+
+    def test_campaign_for_an_unclustered_attacker_is_none(self, db, two_campaigns):
+        from storage import queries
+
+        campaigns.rebuild_campaigns(db)
+        db.commit()
+        assert queries.campaign_for_attacker(db, "203.0.113.250") is None
+
+    def test_storing_nothing_clears_the_threshold(self, db, two_campaigns):
+        from storage.models import Campaign as CampaignRow
+
+        campaigns.rebuild_campaigns(db, threshold=0.35)
+        db.commit()
+        # Nothing clears the bar now, so the stored set must empty rather than
+        # keep serving a grouping that no longer holds.
+        campaigns.rebuild_campaigns(db, threshold=0.35, min_size=99)
+        db.commit()
+        assert db.query(CampaignRow).filter(CampaignRow.threshold == 0.35).count() == 0
+
+    def test_cli_store_flag_persists(self, db, two_campaigns, monkeypatch, capsys, db_url):
+        from storage.models import Campaign as CampaignRow
+
+        monkeypatch.setenv("DATABASE_URL", db_url)
+        assert campaigns.main(["--store"]) == 0
+        assert "stored 2 campaign(s)" in capsys.readouterr().err
+        assert db.query(CampaignRow).count() == 2

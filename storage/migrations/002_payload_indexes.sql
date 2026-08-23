@@ -5,12 +5,8 @@
 -- only adds the pairs the dashboard actually sorts and filters on.
 --
 -- Every statement is IF NOT EXISTS so the file is safe to replay.
---
--- Note for whoever edits this next: _split_statements in storage/db.py splits
--- on the semicolon before it strips comment lines, so a semicolon inside a
--- comment here becomes a broken statement. Keep comments semicolon-free.
 
--- "What did they build for, and when did we last see it" -- the arch
+-- "What did they build for, and when did we last see it?" — the arch
 -- breakdown ordered by recency, which is the payload list default view.
 CREATE INDEX IF NOT EXISTS ix_payloads_arch_last_seen
     ON payloads (arch, last_seen);

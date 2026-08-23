@@ -65,6 +65,8 @@ export const api = {
   payload: (sha256) => request(`/payloads/${sha256}`),
   payloadArchitectures: () => request("/payloads/architectures"),
 
+  campaigns: (params) => request(`/campaigns${qs(params)}`),
+
   alerts: (params) => request(`/alerts${qs(params)}`),
   alertsByRule: (hours) => request(`/alerts/by-rule${qs({ hours })}`),
   rules: () => request("/alerts/rules"),

@@ -363,6 +363,47 @@ class Payload(Base):
         return f"<Payload {self.sha256[:12]} {self.file_type} {self.arch or '-'}>"
 
 
+class Campaign(Base):
+    """A stored behavioural grouping of source addresses.
+
+    Derived like :class:`Attacker` and :class:`Payload` — drop the table and
+    re-run :func:`pipeline.analysis.campaigns.store_campaigns` and nothing is
+    lost.
+
+    ``threshold`` is part of the row rather than a global setting because the
+    grouping only means anything relative to the similarity floor that produced
+    it. Serving rows computed at 0.35 to a caller who asked for 0.6 would be
+    answering a different question than the one asked.
+    """
+
+    __tablename__ = "campaigns"
+
+    campaign_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    threshold: Mapped[float] = mapped_column(Float, index=True)
+
+    size: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    members: Mapped[list[str] | None] = mapped_column(JSON, default=list)
+    event_count: Mapped[int] = mapped_column(Integer, default=0, index=True)
+    cohesion: Mapped[float] = mapped_column(Float, default=0.0)
+
+    # The evidence for the grouping. Stored so the dashboard never has to
+    # recompute a clustering just to explain one.
+    shared_credentials: Mapped[list[str] | None] = mapped_column(JSON, default=list)
+    shared_payloads: Mapped[list[str] | None] = mapped_column(JSON, default=list)
+    shared_paths: Mapped[list[str] | None] = mapped_column(JSON, default=list)
+
+    asns: Mapped[list[int] | None] = mapped_column(JSON, default=list)
+    countries: Mapped[list[str] | None] = mapped_column(JSON, default=list)
+    classifications: Mapped[list[str] | None] = mapped_column(JSON, default=list)
+
+    first_seen: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True))
+    last_seen: Mapped[dt.datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    computed_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<Campaign {self.campaign_id[:8]} size={self.size}>"
+
+
 class Indicator(Base):
     """A local threat-intel indicator.
 
@@ -394,6 +435,7 @@ __all__ = [
     "Attacker",
     "Alert",
     "Payload",
+    "Campaign",
     "Indicator",
     "Service",
     "EventType",
