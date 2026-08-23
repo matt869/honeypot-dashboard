@@ -169,9 +169,13 @@ OIDC/SSO makes it deployable as-is.
 ## Phase 3 — Reach
 
 - **TAXII server** so other tools can pull indicators; MISP/OpenCTI push
-- **Retention and privacy policy** — captured credentials are real people's
-  passwords. Automated pruning, optional hashing at rest, a documented handling
-  policy. Rare in portfolio projects and the first thing a security team asks.
+- **Retention and privacy policy** · **done** — `python -m pipeline.retention`
+  expires events, sessions, alerts, payload rows *and the sample files on
+  disk*, previewing by default because the deletion is irreversible. Optional
+  hashing at rest already exists (`HASH_PASSWORDS`, applied at emit time before
+  anything is stored). The handling policy lives in `FINDINGS.md`.
+  Still open: running it on a schedule, which is deliberately left to the
+  operator's cron rather than done silently in-process.
 - **Observability** — Prometheus metrics, Grafana dashboard for sensor health
 
 ---

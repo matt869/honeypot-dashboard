@@ -49,6 +49,37 @@ publish or act on them:
   distribution defaults to organisation-only for this reason. Widen scope
   deliberately.
 
+### Retention: expire it, do not accumulate it
+
+Everything above is a reason not to hold this data forever. Retention is a
+command rather than a background job, because deleting captures is
+irreversible and should be a decision somebody makes:
+
+```
+python -m pipeline.retention --older-than 90            # preview, the default
+python -m pipeline.retention --older-than 90 --apply
+python -m pipeline.retention --older-than 90 --apply --keep-payload-files
+```
+
+It expires events, sessions, alerts, analysed payload rows **and the sample
+files on disk**, then rebuilds the attacker aggregate and drops stored
+campaigns, which name addresses whose events are gone.
+
+Two properties worth knowing:
+
+- **A payload still referenced by a surviving event is never deleted**,
+  however old the sample is. It is evidence attached to a live observation,
+  and removing it would leave a record pointing at bytes nobody can examine.
+- **The preview is accurate.** It computes reachability against what *would*
+  remain rather than what is currently present, so the dry-run report and the
+  `--apply` report agree. Earlier it did not, and a preview that under-reports
+  an irreversible deletion is worse than no preview at all.
+
+Until this existed, `tools/reset_db.py --prune` deleted events, sessions and
+alerts and left `data/payloads/` untouched — the record of an intrusion expired
+while the working malware stayed on disk indefinitely. That tool now delegates
+here so the two cannot drift apart again.
+
 ### Imported public datasets carry all of the above
 
 Importing a public Cowrie dataset (`tools/import_public_logs.py`) brings in other

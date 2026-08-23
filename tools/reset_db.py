@@ -11,13 +11,12 @@ accidental wipe loses observations that cannot be collected again.
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 import sys
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 
 from storage.db import database_url, get_engine, init_db, session_scope
-from storage.models import Alert, Attacker, Base, Event, Indicator, Session, utcnow
+from storage.models import Alert, Attacker, Base, Event, Indicator, Session
 
 
 def current_counts() -> dict[str, int]:
@@ -58,28 +57,33 @@ def drop_everything() -> None:
 
 
 def purge_events(older_than_days: float) -> dict[str, int]:
-    """Delete events older than N days, then rebuild the derived tables."""
-    cutoff = utcnow() - dt.timedelta(days=older_than_days)
-    removed: dict[str, int] = {}
+    """Delete data older than N days.
+
+    Delegates to :mod:`pipeline.retention` rather than reimplementing the
+    deletion. This function used to remove events, sessions and alerts and stop
+    there, which left ``data/payloads/`` untouched — the record of an intrusion
+    expired while the working malware stayed on disk indefinitely. One
+    implementation means that cannot drift apart again.
+
+    ``python -m pipeline.retention`` is the fuller interface: it previews by
+    default, reports reclaimed bytes, and can keep the sample files for
+    deployments that archive them elsewhere first.
+    """
+    from pipeline.retention import apply_retention
 
     with session_scope() as db:
-        result = db.execute(delete(Event).where(Event.ts < cutoff))
-        removed["events"] = result.rowcount or 0
-        result = db.execute(delete(Session).where(Session.started_at < cutoff))
-        removed["sessions"] = result.rowcount or 0
-        result = db.execute(delete(Alert).where(Alert.last_seen < cutoff))
-        removed["alerts"] = result.rowcount or 0
+        report = apply_retention(db, older_than_days=older_than_days, dry_run=False)
+        db.commit()
 
-    # Attackers is a pure aggregate; rebuild rather than delete-by-date, or its
-    # counters would still include the events we just removed.
-    with session_scope() as db:
-        db.execute(delete(Attacker))
-    with session_scope() as db:
-        from storage import queries
-
-        removed["attackers_rebuilt"] = queries.rebuild_attackers(db)
-
-    return removed
+    return {
+        "events": report.events,
+        "sessions": report.sessions,
+        "alerts": report.alerts,
+        "payload_rows": report.payload_rows,
+        "payload_files": report.payload_files,
+        "campaigns": report.campaigns,
+        "attackers_rebuilt": report.attackers_rebuilt,
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
