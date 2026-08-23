@@ -15,7 +15,7 @@ The single-sensor system, deployed and taking real traffic.
 
 | Capability | State |
 |---|---|
-| Seven emulated services (SSH, Telnet, FTP, HTTP, Redis, MySQL, Docker API) | done |
+| Eight emulated services (SSH, Telnet, FTP, HTTP, Redis, MySQL, Docker API, Elasticsearch) | done |
 | Offline-first enrichment (GeoIP, ASN, local threat intel) | done |
 | Declarative detection rules + transparent scoring | done |
 | Session replay | done |
@@ -115,18 +115,50 @@ Sources with no discriminative behaviour are dropped rather than clustered: a
 connect-and-leave probe has nothing to compare, and grouping those would produce
 a "campaign" of every port scanner alive.
 
-**Still to do:** persistence. Clustering is computed per request because the
-grouping depends on a caller-chosen threshold, so a cached table would only be
-right for one setting. If it becomes a hot path it wants what `payloads` got —
-a derived table plus a rebuild command.
+**Persistence is done.** `python -m pipeline.analysis.campaigns --store` writes
+a `campaigns` table and the endpoint serves it, keeping the O(n²) cost off the
+request path. Rows are keyed by threshold, because a grouping only means
+anything relative to the similarity floor that produced it. `?recompute=true`
+still clusters live for a threshold nothing is stored at.
+
+**Known limitation, on real data.** Clustering the live capture produced two
+groups of 194 and 170 sources with *no* facet common to every member — they are
+held together by transitive chaining, where A resembles B and B resembles C
+across hundreds of hops. The dashboard says so rather than hiding it, but a
+group that large with no shared evidence is weak as a claim. Worth either
+raising the default threshold or capping campaign size and reporting the chain
+separately; both change what a campaign *means*, so it is a judgement call
+rather than a bug fix.
 
 ### Sigma rule support · planned
 The current YAML engine is good but bespoke. Supporting Sigma means importing
 community rules and exporting detections to any SIEM.
 
-### More bait · planned
-Ranked by observed scan volume: Elasticsearch (9200), MongoDB (27017),
-PostgreSQL (5432), SMB (445), RDP (3389), VNC (5900).
+### More bait · Elasticsearch done, rest planned
+
+**Done — Elasticsearch (9200).** HTTP/JSON emulator that tells apart the two
+operators an exposed cluster attracts, because scoring them the same buries one
+in the other:
+
+- **Data theft**, which needs no exploit at all — `_cat/indices` lists
+  everything and `_search` returns it. The index asked for by name is the
+  signal: `customers` is someone who knows what they came for, and gets raised
+  to high.
+- **Ransom.** Meow-style sweeps read nothing and `DELETE` everything. A delete
+  against `/*` or `/_all` is critical, a single index is high.
+- **Scripting RCE** (CVE-2014-3120, CVE-2015-1427). Those payloads still arrive
+  years later because the scanners were never retired, and a body carrying one
+  is the highest-value capture the service can make.
+
+Nothing is stored, searched, deleted or executed. The cluster is plausible
+enough to keep a client talking so it reveals which index it wanted.
+
+**Still planned**, ranked by observed scan volume: MongoDB (27017), PostgreSQL
+(5432), SMB (445), RDP (3389), VNC (5900).
+
+*Note for deployment:* exposing 9200 needs a firewall rule as well as the
+compose port — on Azure that is an inbound NSG rule, the same as the other
+bait ports.
 
 ### Dashboard authentication · planned
 The API deliberately ships with none and documents "put it behind a proxy."

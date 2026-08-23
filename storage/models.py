@@ -76,6 +76,7 @@ class Service(str, enum.Enum):
     REDIS = "redis"
     MYSQL = "mysql"
     DOCKER = "docker"
+    ELASTICSEARCH = "elasticsearch"
 
 
 class EventType(str, enum.Enum):

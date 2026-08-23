@@ -86,6 +86,12 @@ class Settings:
     # single highest-signal bait in the set.
     docker_enabled: bool = field(default_factory=lambda: _env_bool("DOCKER_ENABLED", True))
     docker_port: int = field(default_factory=lambda: _env_int("DOCKER_PORT", 2375))
+    # Elasticsearch draws steady traffic from data-theft crawlers and from the
+    # ransom sweeps that delete every index they can reach.
+    elasticsearch_enabled: bool = field(
+        default_factory=lambda: _env_bool("ELASTICSEARCH_ENABLED", True)
+    )
+    elasticsearch_port: int = field(default_factory=lambda: _env_int("ELASTICSEARCH_PORT", 9200))
 
     # -- deception ----------------------------------------------------------
     # The persona every service presents. See honeypot/deception/banners.py.
@@ -148,6 +154,7 @@ class Settings:
             ServiceConfig("redis", self.redis_enabled, self.redis_port),
             ServiceConfig("mysql", self.mysql_enabled, self.mysql_port),
             ServiceConfig("docker", self.docker_enabled, self.docker_port),
+            ServiceConfig("elasticsearch", self.elasticsearch_enabled, self.elasticsearch_port),
         ]
 
     def enabled_services(self) -> list[ServiceConfig]:

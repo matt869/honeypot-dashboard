@@ -46,6 +46,9 @@ services:
       # Docker API bait. The sensor never talks to a real daemon and the host's
       # own docker socket is never mounted — this only listens.
       - "2375:2375"   # docker
+      # Elasticsearch bait. Scanned for data theft and by the ransom
+      # sweeps that delete every index they can reach.
+      - "9200:9200"   # elasticsearch
     volumes:
       # Captured artefacts and the generated SSH host key live under /app/data.
       # Without this volume both are lost the moment the container is recreated

@@ -2,6 +2,7 @@
 
 from honeypot.services.base import BaseService
 from honeypot.services.docker_service import DockerService
+from honeypot.services.elasticsearch_service import ElasticsearchService
 from honeypot.services.ftp_service import FTPService
 from honeypot.services.http_service import HTTPService
 from honeypot.services.mysql_service import MySQLService
@@ -18,6 +19,7 @@ SERVICE_REGISTRY: dict[str, type[BaseService]] = {
     "redis": RedisService,
     "mysql": MySQLService,
     "docker": DockerService,
+    "elasticsearch": ElasticsearchService,
 }
 
 __all__ = [
@@ -29,5 +31,6 @@ __all__ = [
     "RedisService",
     "MySQLService",
     "DockerService",
+    "ElasticsearchService",
     "SERVICE_REGISTRY",
 ]
