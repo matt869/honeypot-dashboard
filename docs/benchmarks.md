@@ -95,6 +95,35 @@ plain column rows instead of ORM objects does help (244ms), but that is ~15% of
 the total for a real semantic change, since `score_attacker` would then receive
 `Row` objects instead of `Event`s. Left alone deliberately.
 
+## Campaign clustering is quadratic, and stays that way
+
+Comparison is pairwise, so cost grows with the square of the sources
+considered. Measured on one machine:
+
+| sources | pairs | time |
+|---|---|---|
+| 100 | 4,950 | 0.009s |
+| 250 | 31,125 | 0.058s |
+| 500 | 124,750 | 0.236s |
+| 866 | 374,545 | 0.719s |
+| 1,500 | 1,124,250 | 2.285s |
+
+`/api/campaigns` is synchronous, so its `limit` defaults to 500 and is capped
+at 2000. An endpoint that blocks for several seconds is a denial of service you
+shipped yourself.
+
+**An optimisation that did not work**, recorded so nobody rebuilds it. An
+inverted index over the discriminative facets should skip pairs that share no
+token, and above a derived ceiling the skip is provably exact. Implemented and
+measured, it produced **1,124,250 candidate pairs out of 1,124,250** — no
+reduction at all, and 6% slower for the index-building overhead.
+
+The reason is inherent to the data rather than the implementation: credential
+sprays reuse the same small wordlist, so every token bucket contains most of
+the capture and blocking has nothing to prune. It was removed. The same rule
+applied to `load_only` above applies here — complexity that does not pay for
+itself does not stay.
+
 ### The bug that fix nearly shipped with
 
 The SQL grouping needs a bucket index, spelled `strftime('%s', …)` on SQLite and

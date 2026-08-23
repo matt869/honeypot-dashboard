@@ -29,6 +29,14 @@ credential pair, a payload hash, or a distinctive request path is strong. Weight
 this wrong and you get one giant cluster containing the whole internet, which is
 the failure mode this module is most careful about.
 
+**Cost.** Comparison is pairwise, so this is O(n²) in the number of sources
+considered, and the constant is small but the curve is not. Measured on one
+machine: 250 sources 0.06s, 500 sources 0.24s, 866 sources 0.72s, 1500 sources
+2.3s. Callers pick the bound with ``limit``; the API defaults it low
+deliberately. An inverted index over the discriminative facets was tried and
+removed — see ``docs/benchmarks.md`` — because honeypot credential data is
+dense enough that every token bucket is large and it reduced nothing.
+
 Nothing here reaches the network, and clustering is computed from data already
 in the database.
 """

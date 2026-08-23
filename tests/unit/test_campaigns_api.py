@@ -91,7 +91,19 @@ class TestCampaignsEndpoint:
         assert client.get("/api/campaigns?min_size=5").json() == []
 
     def test_limit_is_bounded(self, client):
+        # Clustering is O(n²), so an unbounded limit is a self-inflicted denial
+        # of service on a synchronous endpoint.
         assert client.get("/api/campaigns?limit=999999").status_code == 422
+        assert client.get("/api/campaigns?limit=2001").status_code == 422
+        assert client.get("/api/campaigns?limit=2000").status_code == 200
+
+    def test_default_limit_is_conservative(self, client):
+        import inspect
+
+        from api.routes.campaigns import list_campaigns
+
+        default = inspect.signature(list_campaigns).parameters["limit"].default
+        assert default.default == 500
 
     def test_response_is_json_serialisable_end_to_end(self, client):
         response = client.get("/api/campaigns")

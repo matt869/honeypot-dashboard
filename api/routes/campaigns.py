@@ -2,9 +2,14 @@
 
 Clustering is computed on request rather than stored. That is a deliberate
 choice for now: the grouping depends on a threshold the caller picks, so a
-cached table would only ever be right for one setting, and the cost is bounded
-by ``limit``. If this becomes a hot path, it wants the same treatment
-``payloads`` got — a derived table plus a rebuild command.
+cached table would only ever be right for one setting.
+
+The cost is real and worth knowing before raising ``limit``. Comparison is
+pairwise, so doubling the sources roughly quadruples the work — measured at
+0.24s for 500 and 2.3s for 1500. The default is set low for that reason: a
+synchronous endpoint that blocks for seconds is a denial of service you shipped
+yourself. If this becomes a hot path it wants the treatment ``payloads`` got —
+a derived table plus a rebuild command.
 """
 
 from __future__ import annotations
@@ -28,7 +33,15 @@ def list_campaigns(
         le=1.0,
         description="Similarity floor. Higher means tighter, fewer, more confident groups.",
     ),
-    limit: int = Query(2000, ge=2, le=10000, description="Attackers to consider"),
+    limit: int = Query(
+        500,
+        ge=2,
+        le=2000,
+        description=(
+            "Attackers to consider, most active first. Clustering is O(n²): "
+            "500 costs roughly a quarter of a second, 2000 several seconds."
+        ),
+    ),
     min_size: int = Query(2, ge=2, le=100, description="Smallest group worth calling a campaign"),
 ) -> list[CampaignOut]:
     """Group sources by shared credentials, paths, artefacts and tooling.
