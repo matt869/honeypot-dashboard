@@ -52,6 +52,30 @@ IOT_DEFAULT_CREDS: set[tuple[str, str]] = {
 }
 
 
+# Request lines and headers a scanner sends when it speaks HTTP at port 23.
+# Matched on the whole field rather than as a substring: a real IoT credential
+# could contain "get", and the point is to catch a protocol mismatch, not to
+# start second-guessing plausible usernames.
+_HTTP_VERBS = ("GET", "POST", "HEAD", "PUT", "DELETE", "OPTIONS", "CONNECT", "TRACE", "PATCH")
+
+
+def _looks_like_http(field: str) -> bool:
+    """True when a login field is really an HTTP request line or header.
+
+    Being conservative matters more than being thorough here. A false positive
+    discards a real captured credential, which is the observation this sensor
+    exists to collect, so this only fires on an unmistakable request line or a
+    Host header — not on anything that merely looks web-ish.
+    """
+    text = (field or "").strip()
+    if not text:
+        return False
+    head = text.split(" ", 1)[0].upper()
+    if head in _HTTP_VERBS and "HTTP/" in text.upper():
+        return True
+    return text.upper().startswith(("HOST:", "USER-AGENT:", "ACCEPT:", "CONNECTION:"))
+
+
 def strip_telnet_control(raw: bytes) -> bytes:
     """Remove IAC negotiation sequences, returning only user-typed bytes."""
     out = bytearray()
@@ -100,6 +124,23 @@ class TelnetService(BaseService):
             await self.send(writer, f"{self.hostname} login: ")
             username = await self._read_field(session, reader)
             if username is None:
+                return
+
+            # A scanner speaking HTTP at port 23 is not attempting a login, and
+            # recording "GET / HTTP/1.1" as a username poisons every credential
+            # view downstream — the top-usernames chart, the credential-pair
+            # count, and campaign clustering, which happily grouped four hosts
+            # on a shared "credential" of GET / HTTP/1.1:Host: <sensor>:23.
+            # Observed on the live sensor, which is the only place it shows.
+            if _looks_like_http(username):
+                session.record(
+                    EventType.COMMAND,
+                    severity=Severity.LOW,
+                    command=username,
+                    tags=["protocol-mismatch", "http-on-telnet"],
+                    extra={"expected": "telnet login", "attempt": attempt + 1},
+                )
+                await self.send(writer, "\r\nLogin incorrect\r\n")
                 return
 
             await self.send(writer, "Password: ")
@@ -216,4 +257,4 @@ class TelnetService(BaseService):
         return tags
 
 
-__all__ = ["TelnetService", "strip_telnet_control", "IOT_DEFAULT_CREDS"]
+__all__ = ["TelnetService", "strip_telnet_control", "IOT_DEFAULT_CREDS", "_looks_like_http"]
