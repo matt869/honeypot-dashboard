@@ -282,3 +282,16 @@ class TestCli:
         # Would expire everything including what arrived this second.
         with pytest.raises(SystemExit):
             retention.main(["--older-than", "0", "--apply"])
+
+    def test_a_run_that_expires_nothing_keeps_the_clustering(self, db, aged):
+        # Seen against the live capture: 0 events expiring but 9 campaigns
+        # queued for deletion. Nothing went stale, so wiping the clustering
+        # would only force a pointless recompute.
+        db.add(Campaign(campaign_id="c2", threshold=0.35, size=2, members=["a", "b"]))
+        db.commit()
+        report = retention.apply_retention(
+            db, older_than_days=3650, payload_dir=aged["dir"], dry_run=False
+        )
+        db.commit()
+        assert report.campaigns == 0
+        assert db.query(Campaign).count() == 1

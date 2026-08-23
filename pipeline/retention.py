@@ -203,9 +203,16 @@ def apply_retention(
     # Stored campaigns name source addresses. Once the events behind them are
     # gone the grouping describes something nobody can inspect any more, so it
     # is dropped rather than left as an unfalsifiable claim.
-    report.campaigns = int(db.execute(select(func.count()).select_from(Campaign)).scalar_one())
-    if not dry_run and report.campaigns:
-        db.execute(delete(Campaign))
+    #
+    # Only when something actually expired, though. A run that removes nothing
+    # leaves the clustering entirely valid, and wiping it anyway would force a
+    # pointless O(n²) recompute — which is what the first version did, visible
+    # against the live capture as "0 events, 9 stored campaigns" to remove.
+    invalidated = bool(report.events or report.sessions or report.payload_rows)
+    if invalidated:
+        report.campaigns = int(db.execute(select(func.count()).select_from(Campaign)).scalar_one())
+        if not dry_run and report.campaigns:
+            db.execute(delete(Campaign))
 
     if not dry_run:
         db.flush()
