@@ -43,7 +43,14 @@ export default function LiveFeed() {
       if (fresh.length) {
         cursorRef.current = fresh[0].event_id;
         setNewest(fresh[0].event_id);
-        setEvents((prev) => [...fresh, ...prev].slice(0, MAX_ROWS));
+        // Drop any rows already in the buffer before prepending. Two polls can
+        // overlap — a slow request, or React re-invoking the effect — and both
+        // may carry the same event_id; without this guard React sees duplicate
+        // keys and the same row renders twice.
+        setEvents((prev) => {
+          const seen = new Set(fresh.map((e) => e.event_id));
+          return [...fresh, ...prev.filter((e) => !seen.has(e.event_id))].slice(0, MAX_ROWS);
+        });
         // Clear the highlight after a moment so it flags only truly new rows.
         setTimeout(() => setNewest(null), 1500);
       }
