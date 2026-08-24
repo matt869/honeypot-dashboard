@@ -18,3 +18,4 @@ Guides and evidence for Deception Grid.
 - [demo-kill-chain-2026-08-17.md](demo-kill-chain-2026-08-17.md) — a controlled five-stage kill chain, captured and replayed end to end
 - [smoke-test-2026-08-20.md](smoke-test-2026-08-20.md) — quick health check after two days unattended
 - [live-evidence.md](live-evidence.md) — earlier deployment metrics and screenshots
+- [evidence/local-run-2026-08-25.md](evidence/local-run-2026-08-25.md) — local end-to-end run: full exploit battery, 22 of 28 rules fired, dashboard screenshots (synthetic/loopback sources only)

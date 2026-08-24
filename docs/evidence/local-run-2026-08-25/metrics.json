@@ -1,0 +1,137 @@
+{
+  "generated_at": "2026-08-24T18:15:23.551153+00:00",
+  "note": "Local end-to-end attack run. All sources are reserved/documentation ranges or loopback (127.0.0.1). No real capture data, no PII.",
+  "totals": {
+    "events": 7999,
+    "sessions": 743,
+    "attackers": 151,
+    "alerts": 310,
+    "campaigns": 7,
+    "distinct_rules_fired": 22
+  },
+  "live_test_source_127_0_0_1": {
+    "events": 2214,
+    "by_service": {
+      "ssh": 806,
+      "http": 733,
+      "telnet": 554,
+      "redis": 42,
+      "docker": 28,
+      "elasticsearch": 25,
+      "ftp": 16,
+      "mysql": 10
+    }
+  },
+  "alerts_by_rule": [
+    {
+      "rule_id": "shell_access_granted",
+      "count": 76,
+      "max_severity": "critical"
+    },
+    {
+      "rule_id": "ssh_bruteforce",
+      "count": 35,
+      "max_severity": "high"
+    },
+    {
+      "rule_id": "secret_file_probe",
+      "count": 33,
+      "max_severity": "high"
+    },
+    {
+      "rule_id": "credential_stuffing",
+      "count": 30,
+      "max_severity": "high"
+    },
+    {
+      "rule_id": "payload_download_attempt",
+      "count": 25,
+      "max_severity": "critical"
+    },
+    {
+      "rule_id": "iot_default_credentials",
+      "count": 23,
+      "max_severity": "critical"
+    },
+    {
+      "rule_id": "mirai_signature",
+      "count": 23,
+      "max_severity": "critical"
+    },
+    {
+      "rule_id": "log4shell_attempt",
+      "count": 11,
+      "max_severity": "critical"
+    },
+    {
+      "rule_id": "sql_injection",
+      "count": 11,
+      "max_severity": "high"
+    },
+    {
+      "rule_id": "webshell_upload",
+      "count": 11,
+      "max_severity": "critical"
+    },
+    {
+      "rule_id": "path_traversal",
+      "count": 9,
+      "max_severity": "high"
+    },
+    {
+      "rule_id": "shellshock_attempt",
+      "count": 8,
+      "max_severity": "critical"
+    },
+    {
+      "rule_id": "web_path_scan",
+      "count": 5,
+      "max_severity": "medium"
+    },
+    {
+      "rule_id": "sensitive_file_access",
+      "count": 2,
+      "max_severity": "high"
+    },
+    {
+      "rule_id": "docker_api_enumeration",
+      "count": 1,
+      "max_severity": "medium"
+    },
+    {
+      "rule_id": "docker_container_execute",
+      "count": 1,
+      "max_severity": "critical"
+    },
+    {
+      "rule_id": "docker_cryptominer_image",
+      "count": 1,
+      "max_severity": "critical"
+    },
+    {
+      "rule_id": "docker_host_mount",
+      "count": 1,
+      "max_severity": "critical"
+    },
+    {
+      "rule_id": "high_volume_source",
+      "count": 1,
+      "max_severity": "medium"
+    },
+    {
+      "rule_id": "multi_service_sweep",
+      "count": 1,
+      "max_severity": "medium"
+    },
+    {
+      "rule_id": "redis_dangerous_command",
+      "count": 1,
+      "max_severity": "high"
+    },
+    {
+      "rule_id": "telnet_bruteforce",
+      "count": 1,
+      "max_severity": "high"
+    }
+  ]
+}
