@@ -16,12 +16,14 @@ and a React dashboard.
 Where it's going next: **[docs/ROADMAP.md](docs/ROADMAP.md)**.
 
 > **✅ Proven in production.** Deployed on a public Azure VM, this stack has
-> captured **over 56,000 events** of genuine internet attacks from **163 sources across 38 countries** —
+> captured **over 98,000 events** of genuine internet attacks from **1,316 sources across 81 countries** —
 > emulated shells granted, attacker commands recorded, and **20 of 21 claimed
 > ATT&CK techniques (95%) backed by real alerts**. Live IoT botnets submitting
 > Mirai credentials, a full Redis module-load RCE, a multi-arch botnet CDN, and
 > Docker daemon-takeover attempts — all captured, scored and replayable.
-> Full measurements, test results and a security review of the deployment:
+> Thirty days of capture, campaign attribution and the limits of the evidence:
+> **[docs/field-report-2026-08-24.md](docs/field-report-2026-08-24.md)**.
+> Test results and a security review of the deployment:
 > **[docs/azure-run-2026-08-17.md](docs/azure-run-2026-08-17.md)**.
 > A full five-stage kill chain, captured and replayed end to end:
 > **[docs/demo-kill-chain-2026-08-17.md](docs/demo-kill-chain-2026-08-17.md)**.

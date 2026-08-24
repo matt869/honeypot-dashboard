@@ -12,6 +12,7 @@ Guides and evidence for Deception Grid.
 
 ## Evidence from the live sensor
 
+- [field-report-2026-08-24.md](field-report-2026-08-24.md) — thirty days of capture: 98,522 events, campaign attribution, and what the evidence does not show
 - [azure-run-2026-08-17.md](azure-run-2026-08-17.md) — production run: test suite, findings, the genuine-vs-test-traffic audit
 - [threat-evidence-global.md](threat-evidence-global.md) — real attacks from 38 countries: a Redis RCE, a Mirai CDN, regional credential playbooks
 - [demo-kill-chain-2026-08-17.md](demo-kill-chain-2026-08-17.md) — a controlled five-stage kill chain, captured and replayed end to end
