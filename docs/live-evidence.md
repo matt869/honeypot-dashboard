@@ -93,7 +93,7 @@ source IPs match the attacker table above:
 
 | Score | Source | Country | Network | Class | Notable |
 | ---: | --- | --- | --- | --- | --- |
-| 100 | `136.158.56.92` | 🇵🇭 PH | ComClark | botnet-loader | nuclei scanner; log4shell, shellshock, traversal, webshell |
+| 100 | `REDACTED` | — | operator | botnet-loader | nuclei scanner; log4shell, shellshock, traversal, webshell |
 | 100 | `103.131.61.163` | — | — | botnet-loader | `ti:ipsum`; creds vizxv/linuxshell/smcadmin/juantech |
 | 94 | `112.156.166.41` | 🇰🇷 KR | LG POWERCOMM | botnet-loader | `ti:ipsum` |
 | 92 | `206.183.111.36` | 🇮🇳 IN | Web Werks | botnet-loader | `ti:ipsum`; posted to Discord |

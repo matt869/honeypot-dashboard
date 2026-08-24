@@ -4,10 +4,10 @@ A controlled, authorised walkthrough: a single simulated operator runs a
 five-stage attack against the live Azure sensor, and the pipeline captures,
 detects, scores, maps and replays it. This is a **demonstration of capability**,
 not a record of an intrusion — the traffic originates from the operator's own
-address (`136.158.56.92`), which is excluded from all genuine-attacker figures
+address (`REDACTED`), which is excluded from all genuine-attacker figures
 elsewhere in this repo and is dropped at admission during normal operation.
 
-- **Target:** the production sensor at `104.214.170.247` (public ports)
+- **Target:** the production sensor at its public IP (redacted, see data-handling note) (public ports)
 - **Attacker:** the version-controlled client in [`attacker/`](../attacker/) for
   SSH/telnet, plus hand-issued Redis and Docker requests for the newer bait
 - **Date:** 2026-08-17 08:08–08:14 UTC
@@ -41,7 +41,7 @@ sensor recorded all of it.
 ### One source, scored
 
 ```
-source:         136.158.56.92  (Philippines, ComClark Network & Technology Corp)
+source:         REDACTED  (operator's own connection)
 threat score:   100 / 100
 classification: botnet-loader
 services hit:   docker, http, redis, ssh, telnet

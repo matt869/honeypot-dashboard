@@ -33,7 +33,7 @@ class TestLooksLikeHttp:
             "POST /cgi-bin/x HTTP/1.1",
             "HEAD / HTTP/1.1",
             "OPTIONS * HTTP/1.1",
-            "Host: 104.214.170.247:23",
+            "Host: 198.51.100.23:23",
             "User-Agent: curl/7.81.0",
             "Connection: keep-alive",
         ],
@@ -70,7 +70,7 @@ class TestLooksLikeHttp:
 class TestTelnetSession:
     def test_http_request_is_recorded_as_a_protocol_mismatch(self, protocol_harness):
         _, logger, _ = protocol_harness(
-            TelnetService, script("GET / HTTP/1.1", "Host: 104.214.170.247:23", "")
+            TelnetService, script("GET / HTTP/1.1", "Host: 198.51.100.23:23", "")
         )
         event = logger.tagged("http-on-telnet")[0]
         assert event["event_type"] == EventType.COMMAND.value
