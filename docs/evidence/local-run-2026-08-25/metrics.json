@@ -1,31 +1,31 @@
 {
-  "generated_at": "2026-08-24T18:15:23.551153+00:00",
+  "generated_at": "2026-08-25T07:46:45.016818+00:00",
   "note": "Local end-to-end attack run. All sources are reserved/documentation ranges or loopback (127.0.0.1). No real capture data, no PII.",
   "totals": {
-    "events": 7999,
-    "sessions": 743,
+    "events": 9371,
+    "sessions": 1082,
     "attackers": 151,
-    "alerts": 310,
+    "alerts": 340,
     "campaigns": 7,
     "distinct_rules_fired": 22
   },
   "live_test_source_127_0_0_1": {
-    "events": 2214,
+    "events": 3586,
     "by_service": {
-      "ssh": 806,
-      "http": 733,
-      "telnet": 554,
-      "redis": 42,
-      "docker": 28,
-      "elasticsearch": 25,
-      "ftp": 16,
-      "mysql": 10
+      "ssh": 1289,
+      "http": 1209,
+      "telnet": 886,
+      "redis": 67,
+      "elasticsearch": 45,
+      "docker": 45,
+      "ftp": 30,
+      "mysql": 15
     }
   },
   "alerts_by_rule": [
     {
       "rule_id": "shell_access_granted",
-      "count": 76,
+      "count": 106,
       "max_severity": "critical"
     },
     {
