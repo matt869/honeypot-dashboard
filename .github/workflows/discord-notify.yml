@@ -1,0 +1,35 @@
+name: Discord push notification
+
+# Posts a short message to Discord on every push to main.
+#
+# The webhook URL is NOT stored here. Add it as a repository secret named
+# DISCORD_WEBHOOK (Settings -> Secrets and variables -> Actions -> New secret).
+# If the secret is absent the job exits cleanly, so forks without it never fail.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post commit summary to Discord
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          REPO: ${{ github.repository }}
+          PUSHER: ${{ github.actor }}
+          COMPARE: ${{ github.event.compare }}
+          EVENT_PATH: ${{ github.event_path }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "DISCORD_WEBHOOK secret not set; skipping notification."
+            exit 0
+          fi
+          # One line per commit (subject + author), capped so we stay under Discord's limit.
+          commits=$(jq -r '.commits[] | "- \(.message | split("\n")[0]) (\(.author.name))"' "$EVENT_PATH" | head -15)
+          [ -z "$commits" ] && commits="(no commit details)"
+          payload=$(jq -Rn \
+            --arg repo "$REPO" --arg who "$PUSHER" --arg body "$commits" --arg url "$COMPARE" \
+            '{content: ("**\($repo)** - push by **\($who)**\n\($body)\n\($url)")}')
+          curl -sS -H "Content-Type: application/json" -X POST -d "$payload" "$DISCORD_WEBHOOK"
