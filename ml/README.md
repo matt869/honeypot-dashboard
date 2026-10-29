@@ -12,6 +12,8 @@ run by hand against a snapshot of the data, not on a schedule.
 | `kmeans.py` | 2 | How many distinct *behaviours* are in this capture? |
 | `autoencoder.py` | 3 | Which sessions do not look like anything seen before? |
 | `transformer.py` | 4 | How predictable is a session's command sequence? |
+| `evaluate.py` | 2–3 | How many clusters, and does the model agree with the scorer? |
+| `timeseries.py` | -- | Which time buckets are unusual (spikes or silence)? |
 
 **The production code does not import anything here.** A missing optional
 dependency can only break the experiment being run, never the sensor or the
@@ -26,6 +28,8 @@ python -m ml.export --format features --out ml/data/features.csv
 python -m ml.kmeans --k 6 --out ml/data/clusters.csv
 python -m ml.autoencoder --top 20
 python -m ml.transformer --epochs 20 --save ml/data/transformer.pt
+python -m ml.evaluate --k-max 10
+python -m ml.timeseries --hours 168
 ```
 
 `ml/data/` is git-ignored -- exported datasets and checkpoints are
