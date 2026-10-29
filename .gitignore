@@ -60,3 +60,9 @@ Thumbs.db
 !data/geolite2/.gitkeep
 !data/public_logs/.gitkeep
 !data/wordlists/.gitkeep
+
+# --- ML experiments ---
+# Exported datasets and checkpoints are regenerated from the database with
+# `python -m ml.export`; never commit observations. Keep the directory itself.
+ml/data/*
+!ml/data/.gitkeep

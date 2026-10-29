@@ -1,0 +1,7 @@
+# Optional dependencies for the ml/ experiments. The sensor, API and pipeline
+# do not need these; install on top of requirements.txt:
+#   pip install -r requirements.txt -r ml/requirements.txt
+
+numpy>=1.26
+scikit-learn>=1.4      # ml.kmeans
+torch>=2.1             # ml.autoencoder, ml.transformer
